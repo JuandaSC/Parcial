@@ -5,7 +5,7 @@ var hotelParticular;
 var nombreHotel2Personas;
 var cantParticulares;
 var fechaTourParticular;
-var nombreCiclistaParticular;
+var infoExtraParticular;
 var fechaNacimientoParticular;
 var documentoParticular;
 var emailParticular;

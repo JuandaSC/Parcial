@@ -2,8 +2,8 @@
 
 //VARIABLES QUE SE INGRESAN POR INPUT----------------------------------------------------------
 var hotelParticular;
-var nombreHotelParticular;
-var cantCiclistasParticular;
+var nombreHotel2Personas;
+var cantParticulares;
 var fechaTourParticular;
 var nombreCiclistaParticular;
 var fechaNacimientoParticular;
@@ -61,10 +61,10 @@ $("#nombreHotel2Personas").on('change', validarNombreHotel);
         document.getElementById("error").innerHTML = "";
      }
 }
-//CANT PERSOONAS
-$("#cantParticulares").on('change', validarCantCiclistas);
+//CANT PERSONAS
+$("#cantParticulares").on('change', cantParticulares);
 
- function validarCantCiclistas() {
+ function cantParticulares() {
     valor2 = document.getElementById("cantParticulares").value;
     console.log(valor2)
     if( (valor2 == isNaN) || (valor2 < 1) || (valor2 >10) ) {
@@ -77,11 +77,11 @@ $("#cantParticulares").on('change', validarCantCiclistas);
      }
 }
 
-// NOMBRE CICLISTA
+// NOMBRE USUARIO
 
-$("#Usuarios2").on('change', validarNombreCiclista);
+$("#Usuarios2").on('change', validarUsuario);
 
- function validarNombreCiclista() {
+ function validarUsuario() {
     valor3 = document.getElementById("Usuarios2").value;
     if( valor3 == null || valor3.length == 0 || /^\s+$/.test(valor3) || !(/^[a-zA-ZÀ-ÿ\s]{1,40}$/.test(valor3)) ) {
         //document.getElementById("nombreHotel").classList.add("errorInput");

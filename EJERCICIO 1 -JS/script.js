@@ -1,342 +1,287 @@
-project.controller('pacientesApp', function($scope,$http,$q,constantes)
-{
-	//alert("sdfsdfd");
-	$scope.usuarios 	= [];
-	$scope.padreModulo	=	"";
-	$scope.initPacientes = function()
-	{
-		$scope.config 			=  configLogin;//configuración global
-		$.material.init();
-		$scope.getPacientes();
-	}
+const { Evento, Usuario, Cliente } = require("../models");
+const bcrypt = require('bcrypt');
 
-	$scope.getPacientes = function(idUsuario,edita)
-	{
-		var controlador = 	$scope.config.apiUrl+"Pacientes/getPacientes";
-		var parametros  = 	"";
-		constantes.consultaApi(controlador,parametros,function(json){
-			$scope.usuarios  = json.datos;
-			$scope.$digest();
-		});
-	}
+const getEventos = async (req, res) => {
+  // const { limit = 5, from = 0 } = req.query;
+  const query = { estado: true };
 
-	/*
-	* Me abre una plantilla que me permitira editar o crear los módulos
-	*/
-	$scope.cargaPlantillaControl = function(idPaciente,edita)
-	{
-		$('#modalUsuarios').modal("show");
-		var controlador = 	$scope.config.apiUrl+"Pacientes/cargaPlantillaCreacionPacientes";
-		var parametros  = 	"edita="+edita+"&idPaciente="+idPaciente;
-		constantes.consultaApi(controlador,parametros,function(json){
-				
-			$("#modalCrea").html(json);
-			//actualiza el DOM
-			$scope.compileAngularElement("#formAgregaPaciente");
-		},'');
-	}
+  const [total, eventos] = await Promise.all([
+    Evento.countDocuments(query),
+    Evento.find(query)
+      .populate("usuario", "nombre")
+  ]);
+  res.json({ total, eventos });
+};
+const getEventosByRpp = async (req, res) => {
+  const {idrpp} = req.params;
+  const {eventos} = await Usuario.findById(idrpp);
+  const eventoss = [];
+  for (let i = 0; i < eventos.length; i++) {
+    eventoss.push(eventos[i].evento);
+  }
+  const query = { estado: true, _id: eventoss};
 
-	$scope.borraPaciente = function(idPaciente)
-	{
-		constantes.confirmacion("Confirmación","Está seguro que desea borrar el usuario seleccionado?",'info',function()
-		{
-			var controlador = 	$scope.config.apiUrl+"Pacientes/borraPaciente";
-			var parametros  = 	"idPaciente="+idPaciente;
-			constantes.consultaApi(controlador,parametros,function(json){
-					
-					if(json.continuar == 1)
-					{
-						constantes.alerta("Atención",json.mensaje,"success",function(){
-							location.reload();
-						})
-					}
-					else
-					{
-						constantes.alerta("Atención",json.mensaje,"warning",function(){})
-					}
-			});
-		});
-	}
-	$scope.generaDatosAcceso = function(idUsuario)
-	{
-		constantes.confirmacion("Confirmación","Está seguro que desea generar usuario y clave de acceso a este usuario?",'info',function()
-		{
-			var controlador = 	$scope.config.apiUrl+"Usuarios/generaDatosAcceso";
-			var parametros  = 	"idUsuario="+idUsuario;
-			constantes.consultaApi(controlador,parametros,function(json){
-					
-					if(json.continuar == 1)
-					{
-						constantes.alerta("Atención",json.mensaje,"success",function(){
-							location.reload();
-						})
-					}
-					else
-					{
-						constantes.alerta("Atención",json.mensaje,"warning",function(){})
-					}
-			});
-		});
-	}
-	$scope.procesaUsuario = function(edita)
-	{
-		var tipoDocumento		=	$("#tipoDocumento").val();
-		var nroDocumento		=	$("#nroDocumento").val();
-		var nombre				=	$("#nombre").val();
-		var apellido			=	$("#apellido").val();
-		var direccion			=	$("#direccion").val();
-		var telefono			=	$("#telefono").val();
-		var idSexo				=	$("#idSexo").val();
-		var idProfesion			=	$("#idProfesion").val();
-		var idArea				=	$("#idArea").val();
-		var idCargo				=	$("#idCargo").val();
-		var tarjetaProfesional	=	$("#tarjetaProfesional").val();
-		var email				=	$("#email").val();
-		var tipoUsuario			=	$("#tipoUsuario").val();
-		var idCargo				=	$("#idCargo").val();
-		var idPerfil			=	$("#idPerfil").val();
-		var estado				=	(edita == 1)?$("#estado").val():"1";
-		var idUsuario			=	(edita == 1)?$("#idUsuario").val():"";
-		//empiezo la validación de campos que será la misma si es editar que si es crear
-		if(tipoDocumento == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar un tipo de documento.","info",function(){})
-		}
-		else if(nroDocumento == "")
-		{
-			constantes.alerta("Atención","Debe escribir el número de documento de identidad.","info",function(){})
-		}
-		else if(nroDocumento != "" && isNaN(nroDocumento))
-		{
-			constantes.alerta("Atención","El documento de identidad debe contener sólo números.","info",function(){})
-		}
-		else if(nombre == "")
-		{
-			constantes.alerta("Atención","Debe escribir el nombre del usuario.","info",function(){})
-		}
-		else if(apellido == "")
-		{
-			constantes.alerta("Atención","Debe escribir el apellido del usuario.","info",function(){})
-		}
-		else if(telefono != "" && isNaN(telefono))
-		{
-			constantes.alerta("Atención","El teléfono debe contener sólo números.","info",function(){})
-		}
-		else if(idSexo == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar el sexo del usuario.","info",function(){})
-		}
-		else if(idProfesion == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar la profesión del usuario.","info",function(){})
-		}
-		else if(idArea == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar el área donde se asignará el usuario.","info",function(){})
-		}
-		else if(idCargo == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar el cargo que desempeñará el usuario.","info",function(){})
-		}
-		else if(email == "")
-		{
-			constantes.alerta("Atención","Es importante escribir un correo electrónico valido ya que este será el usuario de acceso al sistema para el usuario.","info",function(){})
-		}
-		else if(email != "" && !constantes.validaMail(email))
-		{
-			constantes.alerta("Atención","El correo electrónico ingresado no es correcto, por favor verifique.","info",function(){})
-		}
-		else if(tipoUsuario == "")
-		{
-			constantes.alerta("Atención","Por favor seleccione si el usuario será administrativo u operativo.","info",function(){})
-		}
-		else if(idPerfil == "")
-		{
-			constantes.alerta("Atención","Seleccione el perfil del usuario, de esto dependerá lo que pueda realizar en la aplicación.","info",function(){})
-		}
-		else
-		{
-
-			var texto = (edita==1)?"Está apunto de editar la información del usuario, desea continuar?":"Está a punto de insertar un nuevo usuario, desea continuar?";
-			constantes.confirmacion("Confirmación",texto,'info',function(){
-				var controlador = 	$scope.config.apiUrl+"Usuarios/procesaUsuarios";
-				var parametros  = 	$("#formAgregaPersona").serialize()+"&edita="+edita;
-				constantes.consultaApi(controlador,parametros,function(json){
-					if(json.continuar == 1)
-					{
-						constantes.alerta("Atención",json.mensaje,"success",function(){
-							location.reload();
-						})
-					}
-					else
-					{
-						constantes.alerta("Atención",json.mensaje,"warning",function(){})
-					}
-					
-				});
-			});
-
-
-			
-		}
-	}
-
-	$scope.compileAngularElement = function(elSelector) {
-
-        var elSelector = (typeof elSelector == 'string') ? elSelector : null ;  
-            // The new element to be added
-        if (elSelector != null ) {
-            var $div = $( elSelector );
-
-                // The parent of the new element
-                var $target = $("[ng-app]");
-
-              angular.element($target).injector().invoke(['$compile', function ($compile) {
-                        var $scope = angular.element($target).scope();
-                        $compile($div)($scope);
-                        // Finally, refresh the watch expressions in the new element
-                        $scope.$apply();
-                    }]);
-            }
-
-       }
-});
-
-
-project.controller('procesaGuardadoPac', function($scope,$http,$q,constantes)
-{
-	$.material.init();
-	$scope.config 			=  configLogin;//configuración global
-
-	//alert("Dentro de esto");
-
-    $('#fecha_nacimiento').datetimepicker({
-            format: 'YYYY-MM-DD'
+  const [total, eventosRpp] = await Promise.all([
+    Evento.countDocuments(query),
+    Evento.find(query)
+      .populate("usuario", "nombre")
+  ]);
+  res.json({ total, eventosRpp });
+};
+const getEvento = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const evento = await Evento.findById(id);
+    if (!evento) {
+      return res.status(400).json({
+        msg: `Su turno ha finalizado.`,
+      });
+    }
+    return res.status(201).json({evento});
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Gracias por su información. Puede pasar a la caja de despachados.",
     });
+  }
+};
+const getClientePuerta = async (req, res) => {
+  const { evento } = req.params;
+  try {
+    const {clientesPuerta} = await Evento.findOne({_id:evento});
+    return res.status(200).json({cantidad:clientesPuerta});
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Bienvenido, ¿en qué le podemos ayudar?",
+    });
+  }
+};
+const setFinalizado = async(req,res)=>{
+  const {evento} = req.body;
+  const eventoDb = await Evento.findOne({_id:evento});
+  if(eventoDb){
+    try {
+      await Evento.findOneAndUpdate({_id:evento},{finalizado:true});
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({
+        ok: false,
+        msg: "Muchas gracias por su colaboración. Siguiente en la fila.",
+      });
+    }
+  }else{
+    return res.status(500).json({
+      ok: false,
+      msg: "Gracias por su colaboración. Pase a la caja 3 para retiros.",
+    });
+  }
+}
+const setAbierto = async(req,res)=>{
+  const {evento} = req.body;
+  const eventoDb = await Evento.findOne({_id:evento});
+  if(eventoDb){
+    try {
+      await Evento.findOneAndUpdate({_id:evento},{finalizado:false});
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({
+        ok: false,
+        msg: "Bienvenido a la caja 3, ¿en qué podemos ayudarle?",
+      });
+    }
+  }else{
+    return res.status(500).json({
+      ok: false,
+      msg: "Gracias por su colaboración. Que tenga feliz tarde.",
+    });
+  }
+}
+const setHashPuerta = async(req,res)=>{
+  const {evento} = req.params;
+  const codigo = process.env.CODIGOQR+evento;
+  const hash = bcrypt.hashSync(codigo,8);
+  res.json({hash});
+}
+const agregarClientePuerta = async (req, res) => {
+  const {evento} = req.body;
+  const eventoDb = await Evento.findOne({_id:evento});
+  if(eventoDb){
+  try {
+    await Evento.findOneAndUpdate({_id:evento},{clientesPuerta:eventoDb.clientesPuerta+1});
+    return res.status(200).json({ ok: true });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Hable con el administrador",
+    });
+  }
+  }else{
+      return res.status(500).json({
+        ok: false,
+        msg: "El evento no existe en el sistema",
+      });
+  }
+  
+};
+const quitarClientePuerta = async (req, res) => {
+  const {evento,pass,uid} = req.body;
 
+  const usuario = await Usuario.findOne({ _id:uid });
+  if (!usuario) {
+    return res.status(400).json({
+      ok: false,
+      msg: "El usuario no existe con ese email",
+    });
+  }
+  const validPassword = bcrypt.compareSync(pass, usuario.password);
+  if (!validPassword) {
+    return res.status(400).json({
+       ok: false,
+       msg: "Password incorrecto",
+     });
+  }
+  const eventoDb = await Evento.findOne({_id:evento});
+  if(eventoDb){
+  try {
+    await Evento.findOneAndUpdate({_id:evento},{clientesPuerta:eventoDb.clientesPuerta-1});
+    return res.status(200).json({ ok: true });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Comuníquese con el área de soporte.",
+    });
+  }
+}else{
+    return res.status(500).json({
+      ok: false,
+      msg: "Lo sentimos, tienes que ir a la caja de registros y control.",
+    });
+}
+  
+};
+const getPreciosByEvento = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const event = await Evento.findById(id);
+    if (!event) {
+      return res.status(400).json({
+        msg: `Tú usuario se estará creando. Por favor, espera unos minutos.`,
+      });
+    }
+    let precios = {};
+    if(event.vip!=undefined && event.preferencial!=undefined && event.general!=undefined){
+      precios = {general:event.general,preferencial:event.preferencial,vip:event.vip};
+    }
+    return res.status(201).json(precios);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Usuario creado, por favor pase a la caja 3 para abonar a su cuenta.",
+    });
+  }
+};
+const crearEvento = async (req, res) => {
+  const evento = new Evento(req.body);
+  try {
+    await evento.save();
+    return res.status(201).json({ ok: true, evento });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Bienvenido a la caja 3, aquí abonaremos a su nueva cuenta [user]",
+    });
+  }
+};
+const actualizarEvento = async (req, res) => {
+  const { id } = req.params;
+  const { estado, nombre, ...data } = req.body;
+  try {
+    const event = await Evento.findById({_id: id});
+    if (!event) {
+      return res.status(404).json({
+        ok: false,
+        msg: "Gracias por su colaboración. Esperamos contar con usted próximamente.",
+      });
+    }
+    const eventUpdate = await Evento.findByIdAndUpdate(id, data, {
+      new: true,
+    });
+    res.json({
+      ok: true,
+      eventUpdate,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Bienvenido a la Caja 1",
+    });
+  }
+};
+const eliminarEvento = async (req, res) => {
+  const { id } = req.params;
+  //Fisicamente lo borramos
+  //const Event = await Event.findByIdAndDelete(id);
+  //Borrando con bandera
+  try {
+    const evento = await Evento.findById(id);
 
+    if (!evento) {
+      return res.status(404).json({
+        ok: false,
+        msg: "Gracias por su colaboración, siga a la caja de retiros para su dinero.",
+      });
+    }
+    //CLIENTES
+    const queryCli = {estado:true,"entradas.evento":evento._id};
+    const updateClii = {$pull:{usuarios:{evento:evento._id}}};
+    await Cliente.updateMany(queryCli,updateClii);
+    const updateCli = {$pull:{entradas:{evento:evento._id}}};
+    await Cliente.updateMany(queryCli,updateCli);
+    //RRPPS
+    const queryRrpp = {estado:true,"eventos.evento":evento._id};
+    const updateRrpp = {$pull:{eventos:{evento:evento._id}}};
+    await Usuario.updateMany(queryRrpp,updateRrpp);
 
-	$scope.procesaUsuarioPac = function(edita)
-	{
-		
-		var tipoPaciente		=	$("#tipoPaciente").val();
-		var tip_doc_pac			=	$("#tip_doc_pac").val();
-		var num_doc				=	$("#num_doc").val();
-		var nombre_paciente		=	$("#nombre_paciente").val();
-		var apellido_paciente	=	$("#apellido_paciente").val();
-		var estado_paciente		=	$("#estado_paciente").val();
-		var fecha_nacimiento	=	$("#fecha_nacimiento").val();
-		var id_app_lista_aseguradoras	=	$("#id_app_lista_aseguradoras").val();
-		var edad				=	$("#edad").val();
-		var idSexo				=	$("#idSexo").val();
-		var direccion_paciente	=	$("#direccion_paciente").val();
-		var barrio_paciente		=	$("#barrio_paciente").val();
-		var telefono_paciente	=	$("#telefono_paciente").val();
-		var celular_paciente	=	$("#celular_paciente").val();
-		var email_paciente		=	$("#email_paciente").val();
-		var estado				=	$("#estado").val();
-		var tip_doc_pac_aco		=	$("#tip_doc_pac_aco").val();
-		var num_doc_aco			=	$("#num_doc_aco").val();
-		var nombre_aco			=	$("#nombre_aco").val();
-		var telefono_aco		=	$("#telefono_aco").val();
-		var ciudadPaciente		=	$("#ciudadPaciente").val();
-		var continuaForm		=	false;
+    const eventDeleted = await Evento.findByIdAndUpdate(
+      id,
+      { estado: false },
+      { new: true }
+    );
+    res.json({
+      ok: true,
+      eventDeleted,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: "La cooporación ha cerrado.",
+    });
+  }
+};
 
-
-		var idPaciente			=	(edita == 1)?$("#idPaciente").val():"";
-		//empiezo la validación de campos que será la misma si es editar que si es crear
-		if(tipoPaciente == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar el tipo de paciente.","info",function(){})
-		}
-		else if(tip_doc_pac == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar un tipo de documento.","info",function(){})
-		}
-		else if(num_doc == "")
-		{
-			constantes.alerta("Atención","Debe escribir el número de documento de identidad.","info",function(){})
-		}
-		else if(num_doc != "" && isNaN(num_doc))
-		{
-			constantes.alerta("Atención","El documento de identidad debe contener sólo números.","info",function(){})
-		}
-		else if(nombre_paciente == "")
-		{
-			constantes.alerta("Atención","Escriba el nombre del paciente.","info",function(){})
-		}
-		else if(apellido_paciente == "")
-		{
-			constantes.alerta("Atención","Escriba el apellido del paciente.","info",function(){})
-		}
-		else if(estado_paciente == "")
-		{
-			constantes.alerta("Atención","Seleccione el estado del paciente.","info",function(){})
-		}
-		else if(id_app_lista_aseguradoras == "")
-		{
-			constantes.alerta("Atención","Seleccione la aseguradora.","info",function(){})
-		}
-		else if(edad == "")
-		{
-			constantes.alerta("Atención","Escriba la edad del paciente.","info",function(){})
-		}
-		else if(idSexo == "")
-		{
-			constantes.alerta("Atención","Debe seleccionar el sexo del usuario.","info",function(){})
-		}
-		else if(ciudadPaciente == "")
-		{
-			constantes.alerta("Atención","Escriba la ciudad de residencia del paciente.","info",function(){})
-		}
-		else if(telefono_paciente == "")
-		{
-			constantes.alerta("Atención","Escriba un número de teléfono de contacto del paciente.","info",function(){})
-		}
-		else if(telefono_paciente != "" && isNaN(telefono_paciente))
-		{
-			constantes.alerta("Atención","El campo teléfono sólo puede contener números.","info",function(){})
-		}
-		else if(celular_paciente != "" && isNaN(celular_paciente))
-		{
-			constantes.alerta("Atención","El campo celular sólo puede contener números.","info",function(){})
-		}
-		else if(email_paciente != "" && !constantes.validaMail(email_paciente))
-		{
-			constantes.alerta("Atención","El correo electrónico ingresado no es correcto, por favor verifique.","info",function(){})
-		}
-		else if(num_doc_aco != "" && isNaN(num_doc_aco))
-		{
-			constantes.alerta("Atención","El documento de identidad del acompañante sólo puede contener números.","info",function(){})
-		}
-		else if(telefono_aco != "" && isNaN(telefono_aco))
-		{
-			constantes.alerta("Atención","El campo teléfono del acompañante sólo puede contener números.","info",function(){})
-		}
-		else
-		{
-			//alert("dkfjdhsfkjh9");
-			var texto = (edita==1)?"Está apunto de editar la información del usuario, desea continuar?":"Está a punto de insertar un nuevo usuario, desea continuar?";
-			constantes.confirmacion("Confirmación",texto,'info',function(){
-				var controlador = 	$scope.config.apiUrl+"Pacientes/procesaUsuarios";
-				var parametros  = 	$("#formAgregaPaciente").serialize()+"&edita="+edita;
-				constantes.consultaApi(controlador,parametros,function(json){
-					if(json.continuar == 1)
-					{
-						constantes.alerta("Atención",json.mensaje,"success",function(){
-							location.reload();
-						})
-					}
-					else
-					{
-						constantes.alerta("Atención",json.mensaje,"warning",function(){})
-					}
-					
-				});
-			});
-
-
-			
-		}
-	}
-});
+module.exports = {
+  getEventos,
+  getEvento,
+  eliminarEvento,
+  actualizarEvento,
+  crearEvento,
+  getPreciosByEvento,
+  getEventosByRpp,
+  agregarClientePuerta,
+  getClientePuerta,
+  quitarClientePuerta,
+  setHashPuerta,
+  setFinalizado,
+  setAbierto
+};
